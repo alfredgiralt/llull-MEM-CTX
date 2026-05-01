@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LlullGen — Target Conversational &amp; Analytical Memory Architecture</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg-soft: #111933;
+    --panel: #151d3a;
+    --panel-2: #1b2547;
+    --ink: #e8ecff;
+    --ink-dim: #aab3d6;
+    --accent: #7c9cff;
+    --accent-2: #a885ff;
+    --accent-3: #4fd1c5;
+    --accent-4: #f6a96a;
+    --accent-5: #ff7d9b;
+    --accent-6: #67e8f9;
+    --accent-7: #c4b5fd;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: radial-gradient(1200px 800px at 10% -10%, #1a2352 0%, transparent 60%),
+                radial-gradient(1000px 700px at 110% 10%, #2a1f5a 0%, transparent 55%),
+                var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100%;
+  }
+
+  .page { max-width: 1400px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  header.hero {
+    background: linear-gradient(135deg, rgba(124,156,255,0.18), rgba(168,133,255,0.12) 40%, rgba(79,209,197,0.10));
+    border: 1px solid var(--border-strong);
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+    position: relative; overflow: hidden;
+  }
+  header.hero::after{
+    content:""; position:absolute; inset:-1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    mix-blend-mode: overlay; pointer-events:none;
+  }
+  .hero-kicker {
+    display: inline-block;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    font-size: 11px; color: var(--accent-3);
+    background: rgba(79,209,197,0.08);
+    border: 1px solid rgba(79,209,197,0.25);
+    padding: 5px 10px; border-radius: 999px;
+    margin-bottom: 14px;
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.01em; }
+  .hero h1 span.grad {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { margin: 0; color: var(--ink-dim); max-width: 980px; }
+
+  .hero-meta {
+    display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 12px; margin-top: 20px;
+  }
+  .metric {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 14px;
+  }
+  .metric .label { font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.12em; }
+  .metric .value { font-size: 18px; font-weight: 600; margin-top: 4px; }
+  .metric .value.good { color: var(--ok); }
+  .metric .value.warn { color: var(--warn); }
+  .metric .value.bad { color: var(--bad); }
+
+  /* Legend */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin: 18px 0 24px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--ink-dim);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.l7 { background: #e4e8ff; }
+  .dot.l6 { background: var(--accent-7); }
+  .dot.l5 { background: var(--accent-5); }
+  .dot.l4 { background: var(--accent-4); }
+  .dot.l3 { background: var(--accent-3); }
+  .dot.l2 { background: var(--accent-6); }
+  .dot.l1 { background: var(--accent); }
+  .dot.l0 { background: var(--ink-dim); }
+
+  /* Flow arrow between layers */
+  .flow-arrow {
+    display: flex; flex-direction: column; align-items: center;
+    margin: -6px 0 -6px;
+    color: var(--ink-dim);
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .flow-arrow .line {
+    width: 2px; height: 22px;
+    background: linear-gradient(180deg, var(--border-strong), transparent);
+  }
+  .flow-arrow .badge {
+    margin: 6px 0;
+    background: var(--panel-2);
+    border: 1px solid var(--border-strong);
+    padding: 4px 10px; border-radius: 999px;
+    color: var(--ink);
+  }
+  .flow-arrow .line.down {
+    background: linear-gradient(180deg, transparent, var(--border-strong));
+  }
+  .flow-arrow .caret {
+    width: 0; height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 10px solid var(--border-strong);
+    margin-top: 2px;
+  }
+
+  /* Layer card */
+  .layer {
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .layer + .layer { margin-top: 10px; }
+  .layer-head {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 14px;
+  }
+  .layer-index {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 18px;
+    color: #0b1020;
+    flex-shrink: 0;
+  }
+  .layer-head h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  .layer-head .tag {
+    margin-left: auto;
+    font-size: 11px; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+
+  .l7 .layer-index { background: linear-gradient(135deg, #e4e8ff, #aab3d6); }
+  .l6 .layer-index { background: linear-gradient(135deg, var(--accent-7), #8b6dd6); }
+  .l5 .layer-index { background: linear-gradient(135deg, var(--accent-5), #d85472); }
+  .l4 .layer-index { background: linear-gradient(135deg, var(--accent-4), #d97f3c); }
+  .l3 .layer-index { background: linear-gradient(135deg, var(--accent-3), #30a89c); }
+  .l2 .layer-index { background: linear-gradient(135deg, var(--accent-6), #2d9eb6); }
+  .l1 .layer-index { background: linear-gradient(135deg, var(--accent), #5b7cff); }
+  .l0 .layer-index { background: linear-gradient(135deg, #cfd5e8, #6b7497); }
+
+  .l7 { border-left: 3px solid #e4e8ff; }
+  .l6 { border-left: 3px solid var(--accent-7); }
+  .l5 { border-left: 3px solid var(--accent-5); }
+  .l4 { border-left: 3px solid var(--accent-4); }
+  .l3 { border-left: 3px solid var(--accent-3); }
+  .l2 { border-left: 3px solid var(--accent-6); }
+  .l1 { border-left: 3px solid var(--accent); }
+  .l0 { border-left: 3px solid var(--ink-dim); }
+
+  /* Tiles inside layers */
+  .tiles {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .tile {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 14px;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    min-height: 88px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    background: rgba(255,255,255,0.05);
+  }
+  .tile .t-title { font-weight: 600; font-size: 14px; }
+  .tile .t-desc { font-size: 12.5px; color: var(--ink-dim); }
+  .tile .t-tag {
+    margin-top: 4px;
+    display: inline-block; font-size: 10.5px;
+    color: var(--ink);
+    background: rgba(124,156,255,0.15);
+    border: 1px solid rgba(124,156,255,0.3);
+    padding: 2px 8px; border-radius: 999px;
+    width: fit-content;
+  }
+  .tile.deterministic .t-tag { background: rgba(74,222,128,0.14); border-color: rgba(74,222,128,0.3); }
+  .tile.registry .t-tag { background: rgba(79,209,197,0.14); border-color: rgba(79,209,197,0.32); }
+  .tile.llm .t-tag { background: rgba(246,169,106,0.16); border-color: rgba(246,169,106,0.3); }
+  .tile.governance .t-tag { background: rgba(168,133,255,0.16); border-color: rgba(168,133,255,0.32); }
+  .tile.enforcement .t-tag { background: rgba(255,125,155,0.16); border-color: rgba(255,125,155,0.32); }
+  .tile.userfacing .t-tag { background: rgba(228,232,255,0.18); border-color: rgba(228,232,255,0.35); color: var(--ink); }
+
+  /* Control plane special panel */
+  .cp-grid {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .cp-tile {
+    background: linear-gradient(135deg, rgba(168,133,255,0.10), rgba(124,156,255,0.06));
+    border: 1px solid rgba(168,133,255,0.25);
+    border-radius: 14px; padding: 14px;
+  }
+  .cp-tile h4 { margin: 0 0 4px; font-size: 14px; }
+  .cp-tile p { margin: 0; font-size: 12.5px; color: var(--ink-dim); }
+  .cp-tile .spec {
+    margin-top: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px; color: #cfd8ff;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 8px;
+    overflow-x: auto; white-space: nowrap;
+  }
+
+  /* Cross-cutting panel */
+  .cross {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  /* Footer summary */
+  .summary-grid {
+    display: grid; gap: 14px; margin-top: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .summary-card {
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border-strong);
+    border-radius: 16px; padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .summary-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .summary-card p { margin: 0; font-size: 13px; color: var(--ink-dim); }
+  .summary-card .kpi {
+    font-size: 26px; font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent-3));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 2px;
+  }
+  .summary-card.warn .kpi { background: linear-gradient(90deg, var(--accent-4), var(--accent-5)); -webkit-background-clip: text; background-clip: text; color: transparent;}
+  .summary-card.good .kpi { background: linear-gradient(90deg, var(--ok), var(--accent-3)); -webkit-background-clip: text; background-clip: text; color: transparent;}
+
+  /* Score meter */
+  .meter { margin-top: 14px; }
+  .meter .bar { height: 8px; width: 100%; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .meter .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--bad), var(--warn) 45%, var(--ok));
+    border-radius: 999px;
+  }
+  .meter .ticks {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--ink-dim); margin-top: 6px;
+  }
+  .cur-marker {
+    position: relative; height: 0;
+  }
+  .cur-marker span {
+    position: absolute; top: -22px; transform: translateX(-50%);
+    font-size: 11px; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--border-strong);
+    padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 30px;
+    color: var(--ink-dim); font-size: 12px; text-align: center;
+  }
+  footer code { color: var(--ink); }
+
+  /* Collapsible details */
+  details {
+    margin-top: 14px;
+    background: rgba(0,0,0,0.18);
+    border: 1px dashed var(--border-strong);
+    border-radius: 12px; padding: 10px 14px;
+  }
+  details[open] summary { color: var(--ink); }
+  summary {
+    cursor: pointer; font-size: 13px; color: var(--ink-dim);
+    outline: none; user-select: none;
+  }
+  details ul { margin: 10px 0 4px 18px; padding: 0; font-size: 12.5px; color: var(--ink); }
+  details ul li { margin-bottom: 4px; }
+  details code { color: #cfd8ff; }
+
+  @media (max-width: 720px) {
+    .hero h1 { font-size: 22px; }
+    .hero-meta { grid-template-columns: repeat(2, 1fr); }
+    .layer-head h2 { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="hero-kicker">Target Architecture · State-Centric Memory · Production-Grade</span>
+    <h1>
+      LlullGen <span class="grad">Conversational &amp; Analytical Memory System</span>
+    </h1>
+    <p>
+      An eight-layer architecture that moves continuity from <em>LLM-honored prose</em> to <em>typed, governed, auditable state</em>.
+      The <code>ActiveAnalyticalState</code> is the single source of truth; rules live in code; transitions are events; users can inspect, correct, confirm, and freeze.
+      LLMs classify and narrate — they do not contain memory.
+    </p>
+
+    <div class="hero-meta">
+      <div class="metric">
+        <div class="label">Current state score</div>
+        <div class="value bad">~1.5 / 5</div>
+      </div>
+      <div class="metric">
+        <div class="label">Target state score</div>
+        <div class="value good">≥ 3.5 / 5</div>
+      </div>
+      <div class="metric">
+        <div class="label">Core principle</div>
+        <div class="value">Continuity as governed state</div>
+      </div>
+      <div class="metric">
+        <div class="label">Migration</div>
+        <div class="value warn">Incremental · seam-first</div>
+      </div>
+    </div>
+
+    <div class="meter" aria-label="Maturity meter">
+      <div class="bar"><div class="fill" style="width:30%"></div></div>
+      <div class="cur-marker"><span style="left:30%">Now · 1.5</span><span style="left:70%">Target · 3.5</span></div>
+      <div class="ticks">
+        <span>0 · Absent</span>
+        <span>1 · Weak</span>
+        <span>2 · Partial</span>
+        <span>3 · Functional</span>
+        <span>4 · Strong</span>
+        <span>5 · Governed</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- LEGEND -->
+  <div class="legend" role="list">
+    <span class="chip" role="listitem"><span class="dot l7"></span>L7 Memory Interaction Surface</span>
+    <span class="chip" role="listitem"><span class="dot l6"></span>L6 MemoryService Protocol</span>
+    <span class="chip" role="listitem"><span class="dot l5"></span>L5 Memory Coordination</span>
+    <span class="chip" role="listitem"><span class="dot l4"></span>L4 State Governance</span>
+    <span class="chip" role="listitem"><span class="dot l3"></span>L3 Operative Memory</span>
+    <span class="chip" role="listitem"><span class="dot l2"></span>L2 Short-Range Memory</span>
+    <span class="chip" role="listitem"><span class="dot l1"></span>L1 Persistence</span>
+    <span class="chip" role="listitem"><span class="dot l0"></span>L0 Leaf Primitives</span>
+  </div>
+
+  <!-- ENTRY -->
+  <div class="flow-arrow" aria-hidden="true">
+    <div class="badge">User turn · session · role · locale · optional state-correction</div>
+    <div class="line down"></div>
+    <div class="caret"></div>
+  </div>
+
+  <!-- L7 -->
+  <section class="layer l7">
+    <div class="layer-head">
+      <div class="layer-index">7</div>
+      <h2>Memory Interaction Surface</h2>
+      <span class="tag">User-facing · authenticated</span>
+    </div>
+    <p style="margin:0 0 12px;color:var(--ink-dim);font-size:13px;">
+      Typed views over the active state. The user can see what the system thinks is true, correct it, confirm it, freeze it, or reset it. No raw transcript exposed.
+    </p>
+    <div class="tiles">
+      <div class="tile userfacing">
+        <div class="t-title">GET /sessions/&#123;id&#125;/active-state</div>
+        <div class="t-desc">Typed snapshot of intent · metrics · dimensions · period · geography · provenance.</div>
+        <span class="t-tag">read</span>
+      </div>
+      <div class="tile userfacing">
+        <div class="t-title">POST /state/correct</div>
+        <div class="t-desc">User overrides a slot value. Emits <code>user_correction</code>; bumps version.</div>
+        <span class="t-tag">write</span>
+      </div>
+      <div class="tile userfacing">
+        <div class="t-title">POST /state/confirm</div>
+        <div class="t-desc">Resolves a <code>PendingConfirmation</code> by slot.</div>
+        <span class="t-tag">write</span>
+      </div>
+      <div class="tile userfacing">
+        <div class="t-title">POST /state/freeze</div>
+        <div class="t-desc">Pins slots so they survive subsequent inheritance/invalidation rules.</div>
+        <span class="t-tag">write</span>
+      </div>
+      <div class="tile userfacing">
+        <div class="t-title">POST /state/reset</div>
+        <div class="t-desc">Reset all or a subset of slots; emits <code>state_reset</code>.</div>
+        <span class="t-tag">write</span>
+      </div>
+      <div class="tile enforcement">
+        <div class="t-title">Auth + Ownership</div>
+        <div class="t-desc">API key + session ownership check on every route. No anonymous reads.</div>
+        <span class="t-tag">enforcement</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">Typed memory request</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L6 -->
+  <section class="layer l6">
+    <div class="layer-head">
+      <div class="layer-index">6</div>
+      <h2>MemoryService Protocol</h2>
+      <span class="tag">Single seam for all consumers</span>
+    </div>
+    <p style="margin:0 0 12px;color:var(--ink-dim);font-size:13px;">
+      The only memory interface used outside <code>memory/</code>. Orchestrator, agents, and routes depend on the protocol — never on raw transcript or DB rows.
+    </p>
+    <div class="cp-grid">
+      <div class="cp-tile">
+        <h4>📌 get_active_state</h4>
+        <p>Immutable snapshot of <code>ActiveAnalyticalState</code> for a session.</p>
+        <div class="spec">→ ActiveAnalyticalState (frozen)</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🧮 propose_state_update</h4>
+        <p>Returns a <code>StateProposal</code> with per-slot decisions.</p>
+        <div class="spec">→ StateProposal { followup_class, decisions[], pending[], grounded_tokens, sql_artifact }</div>
+      </div>
+      <div class="cp-tile">
+        <h4>✅ commit_state_update</h4>
+        <p>Applies the proposal; emits <code>MemoryEvent</code>s; bumps version.</p>
+        <div class="spec">→ StateCommitResult</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🪟 get_short_range</h4>
+        <p>Typed window over recent turns for prompts that genuinely need it.</p>
+        <div class="spec">→ ShortRangeView (max_turns, max_chars_per_turn)</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🗃️ get_session_objects</h4>
+        <p>ObjectBus catalog with grain contract — never raw DataFrames.</p>
+        <div class="spec">→ list[ObjectMetadata { grain, columns, source_query }]</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🧬 get_previous_sql</h4>
+        <p>Replaces direct <code>plan_execution_summary</code> JSONB queries.</p>
+        <div class="spec">→ Optional[SqlArtifact { sql, grain, generated_at_turn }]</div>
+      </div>
+      <div class="cp-tile">
+        <h4>📡 emit_event</h4>
+        <p>Publishes a <code>MemoryEvent</code> to the audit stream.</p>
+        <div class="spec">slot_inherited | overwritten | cleared | clarification_* | user_*</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🔍 read_audit</h4>
+        <p>Replayable per-slot transition log per session.</p>
+        <div class="spec">→ list[StateTransition]</div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Boundary lint contract (enforced)</summary>
+      <ul>
+        <li><code>scripts/check_memory_boundary.py</code> blocks <code>conversation_history[…]</code> indexing outside <code>memory/</code>.</li>
+        <li>Forbids direct <code>plan_execution_summary</code> reads outside <code>memory/persistence/</code>.</li>
+        <li>Forbids attribute assignment on <code>ActiveAnalyticalState</code> outside <code>memory/coordinator/</code>.</li>
+        <li>Allowlist exceptions live in <code>governance/memory_boundary_exceptions.yaml</code> with reason + sunset (ratchet only).</li>
+      </ul>
+    </details>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">MemoryService call</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L5 -->
+  <section class="layer l5">
+    <div class="layer-head">
+      <div class="layer-index">5</div>
+      <h2>Memory Coordination</h2>
+      <span class="tag">Single writer of state</span>
+    </div>
+    <div class="tiles">
+      <div class="tile deterministic">
+        <div class="t-title">MemoryCoordinator</div>
+        <div class="t-desc">Orchestrates L1–L4 per turn. The <em>only</em> code path that may write <code>ActiveAnalyticalState</code>.</div>
+        <span class="t-tag">single writer</span>
+      </div>
+      <div class="tile deterministic">
+        <div class="t-title">Turn Lifecycle</div>
+        <div class="t-desc"><code>load → ground → propose → resolve_clarifications → commit → audit</code>.</div>
+        <span class="t-tag">deterministic</span>
+      </div>
+      <div class="tile enforcement">
+        <div class="t-title">Degraded-Mode Policy</div>
+        <div class="t-desc">Resolver fail → safe <code>is_follow_up=False</code>; LLM fail → grounded-only proposal.</div>
+        <span class="t-tag">enforcement</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">Conflict Resolver</div>
+        <div class="t-desc">Replaces hand-coded resolver-vs-routing trust ordering. Logs every disagreement.</div>
+        <span class="t-tag">governance</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">StateProposal</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L4 -->
+  <section class="layer l4">
+    <div class="layer-head">
+      <div class="layer-index">4</div>
+      <h2>State Governance</h2>
+      <span class="tag">Continuity as code, not prompt</span>
+    </div>
+    <p style="margin:0 0 12px;color:var(--ink-dim);font-size:13px;">
+      Every continuity rule formerly embedded in <code>routing_prompt.py</code> (Categories A/B/C, FOLLOW-UP SCOPE RULE, GRANULARITY CHECK, …) lives here as typed YAML + code with unit tests.
+    </p>
+    <div class="cp-grid">
+      <div class="cp-tile">
+        <h4>🧬 StateUpdater</h4>
+        <p>Per-slot deterministic proposal engine. Marks SlotDeferToLLM only when genuinely ambiguous.</p>
+        <div class="spec">SlotInherit | SlotOverwrite | SlotClear | SlotClarify | SlotDeferToLLM</div>
+      </div>
+      <div class="cp-tile">
+        <h4>📜 InheritanceRules</h4>
+        <p>YAML registry. Each rule has owner, since, ADR.</p>
+        <div class="spec">memory/governance/inheritance_rules.yaml</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🚫 InvalidationRules</h4>
+        <p>Metric change → clear comparisons. Geo change → drop province filter. Etc.</p>
+        <div class="spec">memory/governance/invalidation_rules.yaml</div>
+      </div>
+      <div class="cp-tile">
+        <h4>♻️ ResetRules</h4>
+        <p>Topic-shift detection &amp; deterministic full/partial resets.</p>
+        <div class="spec">memory/governance/reset_rules.yaml</div>
+      </div>
+      <div class="cp-tile">
+        <h4>❓ Clarification Policy</h4>
+        <p>Slot-level <code>PendingConfirmation</code> with SLA + fallback.</p>
+        <div class="spec">PendingConfirmation { slot, question, candidates, sla_turns, fallback }</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🛡️ Semantic Safety</h4>
+        <p><code>GroundedTokens</code> + vocabulary-driven extensibility per role and locale.</p>
+        <div class="spec">memory/governance/safety_vocabularies.yaml</div>
+      </div>
+      <div class="cp-tile">
+        <h4>⚖️ Conflict Resolver</h4>
+        <p>Typed disagreements between resolver / LLM / deterministic rule.</p>
+        <div class="spec">→ ConflictResolution { winner, rationale, evidence }</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🧪 Rule Coverage Gate</h4>
+        <p>CI requires 100% rule unit-test + eval coverage. Untested rule → red build.</p>
+        <div class="spec">scripts/check_memory_governance_coverage.py</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">Per-slot decisions + grounded tokens</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L3 -->
+  <section class="layer l3">
+    <div class="layer-head">
+      <div class="layer-index">3</div>
+      <h2>Operative Memory</h2>
+      <span class="tag">Typed source of truth</span>
+    </div>
+    <div class="tiles">
+      <div class="tile registry">
+        <div class="t-title">ActiveAnalyticalState</div>
+        <div class="t-desc">Typed Pydantic model · slots + provenance + version + frozen_slots + pending_confirmations.</div>
+        <span class="t-tag">typed</span>
+      </div>
+      <div class="tile registry">
+        <div class="t-title">StateRepository</div>
+        <div class="t-desc">Load / persist / version / replay. Append-only per-version rows.</div>
+        <span class="t-tag">repository</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">StateAuditLog</div>
+        <div class="t-desc">Slot-level transitions with <code>turn_id · op · prior · new · cause</code>.</div>
+        <span class="t-tag">audit</span>
+      </div>
+      <div class="tile registry">
+        <div class="t-title">SlotProvenance</div>
+        <div class="t-desc">Who/when/how each slot was set. Grounded-token evidence + confidence.</div>
+        <span class="t-tag">traceability</span>
+      </div>
+    </div>
+
+    <details>
+      <summary>ActiveAnalyticalState contract (excerpt)</summary>
+      <ul>
+        <li><code>session_id · last_turn_id · version</code></li>
+        <li><code>intent · metrics[] · dimensions[] · period · geography[] · comparisons[] · transformations[]</code></li>
+        <li><code>pending_confirmations[] · frozen_slots · provenance{slot → SlotProvenance}</code></li>
+        <li>Handed to readers as <code>frozen()</code>; written only by <code>MemoryCoordinator</code>.</li>
+      </ul>
+    </details>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">State snapshot @ version</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L2 -->
+  <section class="layer l2">
+    <div class="layer-head">
+      <div class="layer-index">2</div>
+      <h2>Short-Range Memory</h2>
+      <span class="tag">Slot-aware compaction</span>
+    </div>
+    <div class="tiles">
+      <div class="tile registry">
+        <div class="t-title">ConversationManager</div>
+        <div class="t-desc">Token-budgeted view, additive summary rows, archive on compaction.</div>
+        <span class="t-tag">repository</span>
+      </div>
+      <div class="tile deterministic">
+        <div class="t-title">PlanContextFilter</div>
+        <div class="t-desc">Guarantees current query survives planning-context filtering. Strips telemetry deterministically.</div>
+        <span class="t-tag">deterministic</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">Slot-Aware Compaction Policy</div>
+        <div class="t-desc">Never discards slot values held in <code>ActiveAnalyticalState</code> or pending confirmations.</div>
+        <span class="t-tag">governance</span>
+      </div>
+      <div class="tile llm">
+        <div class="t-title">Summary Generator</div>
+        <div class="t-desc">Bounded LLM call; output anchored against held slots. Replaces keyword importance.</div>
+        <span class="t-tag">LLM-bounded</span>
+      </div>
+      <div class="tile enforcement">
+        <div class="t-title">Compaction Invariant Test</div>
+        <div class="t-desc">CI test: compacting a session with held slots leaves slots intact at every release.</div>
+        <span class="t-tag">enforcement</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">Persisted rows + summaries</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L1 -->
+  <section class="layer l1">
+    <div class="layer-head">
+      <div class="layer-index">1</div>
+      <h2>Persistence</h2>
+      <span class="tag">Append-only · replayable</span>
+    </div>
+    <div class="cp-grid">
+      <div class="cp-tile">
+        <h4>🗄️ memory_store</h4>
+        <p>Q/R rows + status (<code>active|summary|archived</code>) + plan_execution_summary.</p>
+        <div class="spec">PRIMARY KEY (id) · INDEX (session_id, created_at)</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🧊 state_store</h4>
+        <p>Per-session, per-version <code>ActiveAnalyticalState</code> snapshots. Append-only.</p>
+        <div class="spec">PRIMARY KEY (session_id, version)</div>
+      </div>
+      <div class="cp-tile">
+        <h4>📓 state_audit_log</h4>
+        <p>Slot-level transitions: turn_id · slot · op · prior · new · cause.</p>
+        <div class="spec">INDEX (session_id, turn_id) · INDEX (session_id, slot)</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🪪 sessions</h4>
+        <p>Session metadata, ownership, generated title.</p>
+        <div class="spec">PRIMARY KEY (session_id)</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🧱 ObjectBus (3-tier)</h4>
+        <p>Hot in-memory · Warm Parquet · Cold SQL recomputation. With grain contract.</p>
+        <div class="spec">ObjectMetadata { object_id, grain, columns, row_count, storage_tier }</div>
+      </div>
+      <div class="cp-tile">
+        <h4>🔐 Integrity &amp; Lineage</h4>
+        <p>SHA-256 checksums; plan-event log; session/role scoping enforced.</p>
+        <div class="spec">verify_integrity() · verify_session_scoping()</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="flow-arrow"><div class="line"></div><div class="badge">Leaf primitives consumed by every layer</div><div class="line down"></div><div class="caret"></div></div>
+
+  <!-- L0 -->
+  <section class="layer l0">
+    <div class="layer-head">
+      <div class="layer-index">0</div>
+      <h2>Leaf Primitives</h2>
+      <span class="tag">No outward dependencies</span>
+    </div>
+    <div class="tiles">
+      <div class="tile registry">
+        <div class="t-title">core/protocols/memory.py</div>
+        <div class="t-desc"><code>MemoryService</code> protocol — the contract every layer above L1 honors.</div>
+        <span class="t-tag">protocol</span>
+      </div>
+      <div class="tile registry">
+        <div class="t-title">core/events/memory.py</div>
+        <div class="t-desc">Typed <code>MemoryEvent</code> taxonomy: 10+ canonical event types.</div>
+        <span class="t-tag">events</span>
+      </div>
+      <div class="tile registry">
+        <div class="t-title">core/types</div>
+        <div class="t-desc">TemporalScope · Comparison · Transformation · PendingConfirmation · SlotProvenance.</div>
+        <span class="t-tag">typed</span>
+      </div>
+      <div class="tile registry">
+        <div class="t-title">core/grounding</div>
+        <div class="t-desc">GroundedTokens deterministic extractor (vocabulary-driven, per-role).</div>
+        <span class="t-tag">deterministic</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CROSS-CUTTING: OBSERVABILITY & GOVERNANCE -->
+  <div class="flow-arrow" aria-hidden="true">
+    <div class="line"></div>
+    <div class="badge">Cross-cutting · observable on every turn</div>
+    <div class="line down"></div>
+    <div class="caret"></div>
+  </div>
+
+  <section class="layer" style="border-left:3px solid var(--accent-2);">
+    <div class="layer-head">
+      <div style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:18px;color:#0b1020;background:linear-gradient(135deg, var(--accent-2), #7a55e0);">⊕</div>
+      <h2>Observability &amp; Governance Backplane</h2>
+      <span class="tag">Cross-cutting · always on</span>
+    </div>
+    <div class="cross">
+      <div class="tile governance">
+        <div class="t-title">MemoryEvent Stream</div>
+        <div class="t-desc">slot_inherited · overwritten · cleared · clarification_* · user_correction · false_continuity_blocked · …</div>
+        <span class="t-tag">events</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">Multi-Turn Continuity Eval</div>
+        <div class="t-desc">Goldens for presentation · scope_change · explanation · topic_shift · ambiguous · granularity_mismatch · false_continuity_traps.</div>
+        <span class="t-tag">CI gate</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">Build-Time Metrics</div>
+        <div class="t-desc">Rule coverage · untyped-dict count · raw-transcript-access count · eval pass rate per category.</div>
+        <span class="t-tag">PR gate</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">Runtime Metrics</div>
+        <div class="t-desc"><code>false_continuity_blocked_per_1k_turns</code> · slot_inherited_count · clarification_resolved_within_1_turn_pct.</div>
+        <span class="t-tag">observability</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">Sunset Registry</div>
+        <div class="t-desc"><code>governance/memory_deprecations.yaml</code>. CI fails on past-sunset symbols still in tree.</div>
+        <span class="t-tag">deprecation</span>
+      </div>
+      <div class="tile governance">
+        <div class="t-title">ADRs MEM-001..NNN</div>
+        <div class="t-desc">Every live memory-architecture decision is captured. Docs are linted against the file tree.</div>
+        <span class="t-tag">governance</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPIs / SUMMARY -->
+  <section class="summary-grid" aria-label="Acceptance summary">
+    <div class="summary-card good">
+      <div class="kpi">1 writer</div>
+      <h3>Single writer rule</h3>
+      <p>Only <code>MemoryCoordinator</code> may mutate <code>ActiveAnalyticalState</code>. Lint blocks any other assignment.</p>
+    </div>
+    <div class="summary-card">
+      <div class="kpi">1 seam</div>
+      <h3>One memory interface</h3>
+      <p><code>MemoryService</code> is the only memory dependency outside <code>memory/</code>. ChartAgent transcript-peek is gone.</p>
+    </div>
+    <div class="summary-card">
+      <div class="kpi">0 prose</div>
+      <h3>No continuity in prompts</h3>
+      <p>Categories A/B/C, FOLLOW-UP SCOPE RULE, GRANULARITY CHECK live in YAML + code. Lint scans prompts for forbidden phrases.</p>
+    </div>
+    <div class="summary-card warn">
+      <div class="kpi">1 classifier</div>
+      <h3>De-duplicated follow-up</h3>
+      <p><code>FollowUpResolver</code> is the only emitter of <code>FollowUpClass</code>. Routing LLM cannot re-classify.</p>
+    </div>
+    <div class="summary-card">
+      <div class="kpi">N goldens</div>
+      <h3>Multi-turn eval gate</h3>
+      <p>Continuity correctness is CI-tested per category. Regressions block merge, not customers.</p>
+    </div>
+    <div class="summary-card good">
+      <div class="kpi">Audit ⇒ Trust</div>
+      <h3>Every turn explainable</h3>
+      <p><code>state_audit_log</code> answers "why was continuity assumed at turn N?" with structured slot transitions and rule names.</p>
+    </div>
+  </section>
+
+  <footer>
+    Target Architecture · Conversational &amp; Analytical Memory System — <code>LlullGen</code> · continuity as governed state, not LLM judgment.
+  </footer>
+</div>
+</body>
+</html>
